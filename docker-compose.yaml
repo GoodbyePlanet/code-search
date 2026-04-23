@@ -1,0 +1,48 @@
+services:
+  qdrant:
+    image: qdrant/qdrant:latest
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6333/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  jina-embeddings:
+    image: ghcr.io/huggingface/text-embeddings-inference:cpu-latest
+    ports:
+      - "8087:80"
+    volumes:
+      - hf_cache:/data
+    command: --model-id jinaai/jina-embeddings-v2-base-code --revision main
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 120s
+
+  code-search:
+    build: .
+    ports:
+      - "8090:8090"
+    env_file:
+      - .env
+    environment:
+      EMBEDDINGS_URL: http://jina-embeddings:80
+      QDRANT_URL: http://qdrant:6333
+    depends_on:
+      qdrant:
+        condition: service_healthy
+      jina-embeddings:
+        condition: service_healthy
+    volumes:
+      - ./config.yaml:/app/config.yaml:ro
+
+volumes:
+  qdrant_data:
+  hf_cache:

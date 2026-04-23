@@ -1,0 +1,24 @@
+[project]
+name = "code-search"
+version = "0.1.0"
+description = "MCP server for semantic code search across microservices codebases"
+requires-python = ">=3.12"
+dependencies = [
+    "mcp>=1.5.0",
+    "qdrant-client>=1.13.0",
+    "tree-sitter>=0.24.0",
+    "tree-sitter-java>=0.23.0",
+    "tree-sitter-python>=0.23.0",
+    "tree-sitter-typescript>=0.23.0",
+    "tree-sitter-javascript>=0.23.0",
+    "pydantic-settings>=2.7.0",
+    "pyyaml>=6.0",
+    "httpx>=0.28.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["server"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

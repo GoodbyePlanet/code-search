@@ -1,0 +1,25 @@
+# Environment
+.env
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+
+# uv
+.uv/
+
+# macOS
+.DS_Store
+
+# JetBrains IDE
+*.iml
+.idea/
+
+# Docker
+.dockerignore

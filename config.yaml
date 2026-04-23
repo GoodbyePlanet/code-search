@@ -1,0 +1,44 @@
+services:
+  - name: catalog-service
+    github_repo: your-org/catalog-service
+    github_ref: main
+    languages: [java]
+    include:
+      - "src/main/java/**/*.java"
+    exclude:
+      - "**/test/**"
+      - "**/target/**"
+
+  - name: order-service
+    github_repo: your-org/order-service
+    github_ref: main
+    languages: [java]
+    include:
+      - "src/main/java/**/*.java"
+    exclude:
+      - "**/test/**"
+      - "**/target/**"
+
+  - name: inventory-service
+    github_repo: your-org/inventory-service
+    github_ref: main
+    languages: [java]
+    include:
+      - "src/main/java/**/*.java"
+    exclude:
+      - "**/test/**"
+      - "**/target/**"
+
+  - name: observability-chat
+    github_repo: your-org/observability-chat
+    github_ref: main
+    languages: [python, typescript]
+    include:
+      - "backend/**/*.py"
+      - "frontend/src/**/*.ts"
+      - "frontend/src/**/*.tsx"
+    exclude:
+      - "**/__pycache__/**"
+      - "**/node_modules/**"
+      - "**/.venv/**"
+      - "**/.uv/**"
