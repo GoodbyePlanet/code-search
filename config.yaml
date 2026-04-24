@@ -4,6 +4,7 @@ services:
     github_ref: main
     languages: [go]
     include:
+      - "*.go"
       - "**/*.go"
       - "Dockerfile"
       - "go.mod"
@@ -16,10 +17,11 @@ services:
     github_ref: main
     languages: [go]
     include:
+      - "*.go"
       - "**/*.go"
       - "Dockerfile"
       - "go.mod"
-      - "docker-compose.yaml"
+      - "docker-compose.yml"
       - "Makefile"
       - "README.md"
     exclude:
@@ -68,6 +70,8 @@ services:
     github_ref: main
     languages: [typescript]
     include:
+      - "fe-client/src/*.ts"
+      - "fe-client/src/*.tsx"
       - "fe-client/src/**/*.ts"
       - "fe-client/src/**/*.tsx"
     exclude:
