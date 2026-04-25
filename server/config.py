@@ -12,16 +12,14 @@ class ServiceConfig:
         self,
         name: str,
         github_repo: str,
-        languages: list[str],
-        include: list[str],
         exclude: list[str],
         github_ref: str = "main",
+        root: str | None = None,
     ) -> None:
         self.name = name
         self.github_repo = github_repo  # e.g. "myorg/catalog-service"
         self.github_ref = github_ref    # branch, tag, or commit SHA
-        self.languages = languages
-        self.include = include
+        self.root = root                # optional path prefix within the repo
         self.exclude = exclude
 
 
@@ -56,8 +54,7 @@ class Settings(BaseSettings):
                     name=svc["name"],
                     github_repo=svc["github_repo"],
                     github_ref=svc.get("github_ref", "main"),
-                    languages=svc.get("languages", []),
-                    include=svc.get("include", ["**/*"]),
+                    root=svc.get("root"),
                     exclude=svc.get("exclude", []),
                 )
             )

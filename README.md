@@ -1,6 +1,8 @@
 # code-search
 
-An MCP (Model Context Protocol) server that provides semantic code search across microservices codebases. It indexes code symbols from GitHub repositories and makes them searchable via natural language queries or symbol name lookups.
+An MCP (Model Context Protocol) server that provides semantic code search across microservices codebases.
+It indexes code symbols from GitHub repositories and makes them searchable via natural language queries or
+symbol name lookups.
 
 ## How it works
 
@@ -12,10 +14,15 @@ An MCP (Model Context Protocol) server that provides semantic code search across
 
 ## Supported languages
 
+Language is detected automatically from file extension or filename — no configuration needed.
+
 - Go
 - Java (including Spring annotations)
 - Python
 - TypeScript / React (including hooks and components)
+- Dockerfile
+- Docker Compose
+- Markdown
 
 ## Setup
 
@@ -35,11 +42,14 @@ Configure which repositories to index in `config.yaml`:
 services:
   - name: my-service
     github_repo: owner/repo
-    github_ref: main
-    languages: [go, java, python, typescript]
-    include: ["**/*.go"]
-    exclude: ["**/vendor/**"]
+    github_ref: main              # optional, defaults to "main"
+    root: src/main/java           # optional — limit indexing to this subdirectory (useful for monorepos)
+    exclude:                      # optional — skip matching paths
+      - "**/vendor/**"
+      - "**/node_modules/**"
 ```
+
+The indexer automatically discovers and indexes all files with recognised extensions. Use `root` to scope a service to a subdirectory within a shared repo, and `exclude` to skip paths you don't want indexed (tests, build artifacts, generated code, etc.).
 
 ## Running
 

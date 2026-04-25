@@ -52,7 +52,7 @@ def register_admin_tools(mcp: FastMCP) -> None:
             f"**Configured services** ({len(configured)}):",
         ]
         for svc in configured:
-            lines.append(f"- `{svc.name}` ({', '.join(svc.languages)}) — `{svc.github_repo}@{svc.github_ref}`")
+            lines.append(f"- `{svc.name}` — `{svc.github_repo}@{svc.github_ref}`")
 
         lines.append("")
         lines.append(f"**Embeddings URL**: {settings.embeddings_url}")

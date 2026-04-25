@@ -106,7 +106,7 @@ class IndexPipeline:
 
         github_files = await list_github_files(
             settings.github_token, svc.github_repo, svc.github_ref,
-            svc.name, svc.languages, svc.include, svc.exclude,
+            svc.name, svc.exclude, svc.root,
         )
 
         existing_hashes = {} if force else await self._store.get_indexed_file_hashes(svc.name)

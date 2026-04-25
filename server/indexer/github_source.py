@@ -20,7 +20,7 @@ _EXT_TO_LANGUAGE = {
     ".md": "markdown",
 }
 
-# Exact basenames that map to a language regardless of extension
+# Exact basename that map to a language regardless of extension
 _FILENAME_TO_LANGUAGE = {
     "Dockerfile": "dockerfile",
     "dockerfile": "dockerfile",
@@ -29,11 +29,6 @@ _FILENAME_TO_LANGUAGE = {
     "compose.yml": "docker-compose",
     "compose.yaml": "docker-compose",
 }
-
-# These languages are "meta" files — they bypass the per-service language allowlist
-# so that users don't have to add "dockerfile" / "markdown" / "docker-compose" to
-# their config; they only need the file patterns in the include list.
-_META_LANGUAGES = {"dockerfile", "docker-compose", "markdown"}
 
 
 @dataclass
@@ -66,11 +61,15 @@ async def list_github_files(
     repo: str,
     ref: str,
     service_name: str,
-    languages: list[str],
-    include: list[str],
     exclude: list[str],
+    root: str | None = None,
 ) -> list[GitHubFile]:
-    """List matching files via the git trees API (single request for the full tree)."""
+    """List matching files via the git trees API (single request for the full tree).
+
+    All files whose extension or basename is recognised by the parser registry are
+    indexed. If *root* is set, only files under that path prefix are considered.
+    Paths matching *exclude* patterns are skipped.
+    """
     async with httpx.AsyncClient() as client:
         r = await client.get(
             f"{_GITHUB_API}/repos/{repo}/git/trees/{ref}",
@@ -81,22 +80,20 @@ async def list_github_files(
         r.raise_for_status()
         tree = r.json()
 
+    root_prefix = root.rstrip("/") + "/" if root else None
+
     files: list[GitHubFile] = []
     for item in tree.get("tree", []):
         if item["type"] != "blob":
             continue
         path = item["path"]
+        if root_prefix and not path.startswith(root_prefix):
+            continue
         basename = os.path.basename(path)
         ext = os.path.splitext(path)[1]
         # Exact filename match wins over extension (e.g. Dockerfile, docker-compose.yml)
         language = _FILENAME_TO_LANGUAGE.get(basename) or _EXT_TO_LANGUAGE.get(ext)
         if language is None:
-            continue
-        # Meta-languages bypass the per-service language allowlist — they are
-        # included whenever they match the include patterns below.
-        if language not in _META_LANGUAGES and language not in languages:
-            continue
-        if include and not _matches_any(path, include):
             continue
         if exclude and _matches_any(path, exclude):
             continue

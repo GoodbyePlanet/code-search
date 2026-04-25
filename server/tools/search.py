@@ -72,7 +72,7 @@ def register_search_tools(mcp: FastMCP) -> None:
         """Find a class, method, interface, or function by name.
 
         Args:
-            name: Symbol name to search for (e.g. "OrderService", "placeOrder", "ProductController")
+            name: Symbol name to search for
             symbol_type: Optional type filter: class, method, interface, enum, record, function, etc.
             service: Optional service filter
             exact: If true, only exact name matches. If false (default), partial/fuzzy matching.

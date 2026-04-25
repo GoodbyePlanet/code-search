@@ -2,36 +2,15 @@ services:
   - name: leaked-passwords-api
     github_repo: GoodbyePlanet/leaked-passwords-api
     github_ref: main
-    languages: [go]
-    include:
-      - "*.go"
-      - "**/*.go"
-      - "Dockerfile"
-      - "go.mod"
-      - "Makefile"
-      - "README.md"
-    exclude:
 
   - name: passkey-service
     github_repo: GoodbyePlanet/passkey-service
     github_ref: main
-    languages: [go]
-    include:
-      - "*.go"
-      - "**/*.go"
-      - "Dockerfile"
-      - "go.mod"
-      - "docker-compose.yml"
-      - "Makefile"
-      - "README.md"
-    exclude:
 
   - name: auth-server
     github_repo: GoodbyePlanet/spring-cg-bff
     github_ref: main
-    languages: [java]
-    include:
-      - "auth-server/src/main/java/**/*.java"
+    root: auth-server
     exclude:
       - "**/test/**"
       - "**/target/**"
@@ -39,9 +18,7 @@ services:
   - name: gateway
     github_repo: GoodbyePlanet/spring-cg-bff
     github_ref: main
-    languages: [java]
-    include:
-      - "gateway/src/main/java/**/*.java"
+    root: gateway
     exclude:
       - "**/test/**"
       - "**/target/**"
@@ -49,9 +26,7 @@ services:
   - name: secure-resource
     github_repo: GoodbyePlanet/spring-cg-bff
     github_ref: main
-    languages: [java]
-    include:
-      - "secure-resource/src/main/java/**/*.java"
+    root: secure-resource
     exclude:
       - "**/test/**"
       - "**/target/**"
@@ -59,20 +34,15 @@ services:
   - name: spring-cg-bff
     github_repo: GoodbyePlanet/spring-cg-bff
     github_ref: main
-    languages: []
-    include:
-      - "docker-compose.yml"
-      - "README.md"
     exclude:
+      - "auth-server/**"
+      - "gateway/**"
+      - "secure-resource/**"
+      - "fe-client/**"
 
   - name: fe-client
     github_repo: GoodbyePlanet/spring-cg-bff
     github_ref: main
-    languages: [typescript]
-    include:
-      - "fe-client/src/*.ts"
-      - "fe-client/src/*.tsx"
-      - "fe-client/src/**/*.ts"
-      - "fe-client/src/**/*.tsx"
+    root: fe-client
     exclude:
       - "**/node_modules/**"
