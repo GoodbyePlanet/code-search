@@ -17,7 +17,23 @@ _EXT_TO_LANGUAGE = {
     ".tsx": "typescript",
     ".js": "typescript",
     ".jsx": "typescript",
+    ".md": "markdown",
 }
+
+# Exact basenames that map to a language regardless of extension
+_FILENAME_TO_LANGUAGE = {
+    "Dockerfile": "dockerfile",
+    "dockerfile": "dockerfile",
+    "docker-compose.yml": "docker-compose",
+    "docker-compose.yaml": "docker-compose",
+    "compose.yml": "docker-compose",
+    "compose.yaml": "docker-compose",
+}
+
+# These languages are "meta" files — they bypass the per-service language allowlist
+# so that users don't have to add "dockerfile" / "markdown" / "docker-compose" to
+# their config; they only need the file patterns in the include list.
+_META_LANGUAGES = {"dockerfile", "docker-compose", "markdown"}
 
 
 @dataclass
@@ -70,9 +86,15 @@ async def list_github_files(
         if item["type"] != "blob":
             continue
         path = item["path"]
+        basename = os.path.basename(path)
         ext = os.path.splitext(path)[1]
-        language = _EXT_TO_LANGUAGE.get(ext)
-        if language is None or language not in languages:
+        # Exact filename match wins over extension (e.g. Dockerfile, docker-compose.yml)
+        language = _FILENAME_TO_LANGUAGE.get(basename) or _EXT_TO_LANGUAGE.get(ext)
+        if language is None:
+            continue
+        # Meta-languages bypass the per-service language allowlist — they are
+        # included whenever they match the include patterns below.
+        if language not in _META_LANGUAGES and language not in languages:
             continue
         if include and not _matches_any(path, include):
             continue

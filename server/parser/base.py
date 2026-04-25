@@ -8,7 +8,7 @@ from typing import Protocol, runtime_checkable
 class CodeSymbol:
     name: str
     symbol_type: str  # class, interface, enum, record, method, function, component, hook, type
-    language: str     # java, python, typescript
+    language: str     # java, python, typescript, go
     source: str       # raw source text of this symbol
     file_path: str    # "{service_name}/{path_in_repo}"
     start_line: int
