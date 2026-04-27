@@ -1,0 +1,11 @@
+{
+  "name": "fixture-pkg",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "tsc",
+    "test": "pytest"
+  },
+  "dependencies": {
+    "react": "^18.0.0"
+  }
+}

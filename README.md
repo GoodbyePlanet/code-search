@@ -62,6 +62,16 @@ This starts:
 - **Jina Embeddings** (TEI) on port `8087`
 - **code-search MCP server** on port `8090`
 
+## Tests
+
+```bash
+uv sync --group dev
+uv run pytest
+```
+
+Tests live under `tests/` and snapshot current parser behavior against canonical
+fixtures in `tests/fixtures/<language>/`.
+
 ## MCP Tools
 
 | Tool | Description |

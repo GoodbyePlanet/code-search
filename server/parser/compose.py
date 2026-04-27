@@ -10,7 +10,7 @@ from server.parser.base import CodeSymbol
 def _find_service_line(text_lines: list[str], service_name: str) -> int:
     """Return 1-indexed line where 'service_name:' first appears under 'services:'."""
     in_services = False
-    # Match a line like "  service_name:" (indented under services block)
+    # Match a line like "service_name:" (indented under services block)
     pattern = re.compile(r"^\s+" + re.escape(service_name) + r"\s*:")
     for i, line in enumerate(text_lines):
         if line.strip() == "services:":

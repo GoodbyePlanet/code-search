@@ -17,8 +17,19 @@ dependencies = [
     "httpx>=0.28.0",
 ]
 
+[dependency-groups]
+dev = [
+    "pytest>=8",
+    "pytest-asyncio>=0.23",
+    "respx>=0.21",
+]
+
 [tool.hatch.build.targets.wheel]
 packages = ["server"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
 
 [build-system]
 requires = ["hatchling"]
