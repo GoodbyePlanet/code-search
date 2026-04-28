@@ -11,6 +11,7 @@ from server.parser.json_parser import JsonParser
 from server.parser.markdown import MarkdownParser
 from server.parser.python import PythonParser
 from server.parser.typescript import TypeScriptParser
+from server.parser.xml_parser import XmlParser
 
 # extension (e.g. ".go") → parser
 _PARSERS: dict[str, LanguageParser] = {}
@@ -32,6 +33,7 @@ def _build_registry() -> tuple[dict[str, LanguageParser], dict[str, LanguagePars
         JsonParser(),
         HtmlParser(),
         CssParser(),
+        XmlParser(),
     ]
     for parser in all_parsers:
         for ext in parser.supported_extensions():
