@@ -34,6 +34,8 @@ class Settings(BaseSettings):
 
     qdrant_url: str = Field(default="http://localhost:6333", alias="QDRANT_URL")
     qdrant_collection: str = Field(default="code_symbols", alias="QDRANT_COLLECTION")
+    qdrant_commits_collection: str = Field(default="git_commits", alias="QDRANT_COMMITS_COLLECTION")
+    git_history_max_commits: int = Field(default=500, alias="GIT_HISTORY_MAX_COMMITS")
 
     mcp_transport: Literal["streamable-http", "sse", "stdio"] = Field(
         default="streamable-http", alias="MCP_TRANSPORT"

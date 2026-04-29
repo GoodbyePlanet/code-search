@@ -18,6 +18,15 @@ class GitHubFile:
     blob_sha: str    # git blob SHA — used as file_hash for incremental indexing
 
 
+@dataclass
+class GitHubCommit:
+    sha: str
+    message: str
+    author_name: str
+    author_email: str
+    committed_at: str  # ISO 8601
+
+
 def _matches_any(path: str, patterns: list[str]) -> bool:
     for pattern in patterns:
         if fnmatch.fnmatch(path, pattern):
@@ -78,6 +87,49 @@ async def list_github_files(
             blob_sha=item["sha"],
         ))
     return files
+
+
+async def list_commits(
+    token: str,
+    repo: str,
+    ref: str,
+    root: str | None = None,
+    max_commits: int = 500,
+) -> list[GitHubCommit]:
+    """Fetch recent commits from the GitHub commits API, optionally filtered to a path prefix."""
+    commits: list[GitHubCommit] = []
+    page = 1
+    per_page = 100
+
+    async with httpx.AsyncClient() as client:
+        while len(commits) < max_commits:
+            params: dict[str, str | int] = {"sha": ref, "per_page": per_page, "page": page}
+            if root:
+                params["path"] = root
+            r = await client.get(
+                f"{_GITHUB_API}/repos/{repo}/commits",
+                params=params,
+                headers=_auth_headers(token),
+                timeout=30,
+            )
+            r.raise_for_status()
+            batch = r.json()
+            if not batch:
+                break
+            for item in batch:
+                commit_data = item["commit"]
+                commits.append(GitHubCommit(
+                    sha=item["sha"],
+                    message=commit_data["message"],
+                    author_name=commit_data["author"]["name"],
+                    author_email=commit_data["author"]["email"],
+                    committed_at=commit_data["author"]["date"],
+                ))
+            if len(batch) < per_page:
+                break
+            page += 1
+
+    return commits[:max_commits]
 
 
 async def fetch_blob_content(token: str, repo: str, blob_sha: str) -> bytes:
