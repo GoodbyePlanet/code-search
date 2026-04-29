@@ -34,6 +34,9 @@ uv sync
 
 # Copy and configure environment
 cp .env.example .env
+
+# Copy and configure services
+cp config.example.yaml config.yaml
 ```
 
 Configure which repositories to index in `config.yaml`:
