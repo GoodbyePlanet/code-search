@@ -93,8 +93,9 @@ chunk with a vector embedding and a rich payload.
 - **Upsert** — vectors stored in Qdrant under deterministic UUIDs (per service / file / symbol / line)
 - **Cleanup** — entries for files no longer in the repo are deleted
 
-Git history indexing is a separate, optional pipeline that embeds commit messages into the
-`git_commits` collection. The number of commits per service is capped by `GIT_HISTORY_MAX_COMMITS`
+Git history indexing is a separate, optional pipeline that embeds commit messages and changed file
+paths into the `git_commits` collection. Full unified diffs are stored in the payload and retrievable
+via the `get_commit` tool. The number of commits per service is capped by `GIT_HISTORY_MAX_COMMITS`
 (default 500).
 
 ## Tests
@@ -121,8 +122,9 @@ Tests live under `tests/`:
 | `find_usages`           | Find code that references a given symbol name (semantic search + textual filter)           |
 | `get_code_context`      | Fetch the full source of a file — or a specific symbol within it — directly from GitHub    |
 | `reindex`               | Trigger code indexing of one or all services (incremental by default; `force` to re-embed) |
-| `index_history`         | Index git commit history for one or all services                                           |
+| `index_history`         | Index git commit history; automatically fetches diffs for commits missing them             |
 | `search_commits`        | Search git commit history with natural language                                            |
+| `get_commit`            | Get full details for a specific commit including changed files and diffs                   |
 | `list_indexed_services` | List indexed services with file counts, languages, and last-indexed time                   |
 | `index_stats`           | Show Qdrant collection statistics and configured services                                  |
 
@@ -163,7 +165,8 @@ The full payload also includes `signature`, `docstring`, `annotations`, `package
 `spring_stereotype`, `lombok_annotations`, `is_async`, `uses_memo`, …).
 
 **`git_commits`** — one vector per commit. Payload includes `sha`, `service`, `message`,
-`author_name`, `author_email`, `committed_at`, `indexed_at`.
+`author_name`, `author_email`, `committed_at`, `indexed_at`, `has_diff`, `diff_truncated`,
+and `files` (array of changed files with `filename`, `status`, `additions`, `deletions`, `patch`).
 
 Both collections use cosine distance and HNSW indexing (`m=16`, `ef_construct=128`).
 

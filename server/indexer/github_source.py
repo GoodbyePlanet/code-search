@@ -1,15 +1,20 @@
 from __future__ import annotations
 
+import asyncio
 import base64
 import fnmatch
+import logging
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import httpx
 
 from server.parser.registry import is_supported_path
 
 _GITHUB_API = "https://api.github.com"
+_DIFF_CONCURRENCY = 10
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -19,12 +24,22 @@ class GitHubFile:
 
 
 @dataclass
+class CommitFile:
+    filename: str
+    status: str       # "added" | "modified" | "deleted" | "renamed"
+    additions: int
+    deletions: int
+    patch: str | None
+
+
+@dataclass
 class GitHubCommit:
     sha: str
     message: str
     author_name: str
     author_email: str
     committed_at: str  # ISO 8601
+    files: list[CommitFile] = field(default_factory=list)
 
 
 def _matches_any(path: str, patterns: list[str]) -> bool:
@@ -130,6 +145,69 @@ async def list_commits(
             page += 1
 
     return commits[:max_commits]
+
+
+async def fetch_commit_detail(token: str, repo: str, sha: str) -> list[CommitFile]:
+    """Fetch changed files for a single commit via GET /repos/{repo}/commits/{sha}."""
+    async with httpx.AsyncClient() as client:
+        r = await client.get(
+            f"{_GITHUB_API}/repos/{repo}/commits/{sha}",
+            headers=_auth_headers(token),
+            timeout=30,
+        )
+        r.raise_for_status()
+        data = r.json()
+    return [
+        CommitFile(
+            filename=f["filename"],
+            status=f.get("status", "modified"),
+            additions=f.get("additions", 0),
+            deletions=f.get("deletions", 0),
+            patch=f.get("patch"),
+        )
+        for f in data.get("files", [])
+    ]
+
+
+async def fetch_commits_with_diffs(
+    token: str,
+    repo: str,
+    commits: list[GitHubCommit],
+    max_files: int = 50,
+    max_patch_chars: int = 2000,
+) -> list[GitHubCommit]:
+    """Fetch diff details for a batch of commits in parallel, bounded by a semaphore."""
+    sem = asyncio.Semaphore(_DIFF_CONCURRENCY)
+
+    async def _fetch_one(commit: GitHubCommit) -> GitHubCommit:
+        async with sem:
+            try:
+                files = await fetch_commit_detail(token, repo, commit.sha)
+            except Exception as exc:
+                logger.warning("Failed to fetch diff for %s: %s", commit.sha[:8], exc)
+                return commit
+        truncated = []
+        for f in files[:max_files]:
+            patch = f.patch
+            if patch and len(patch) > max_patch_chars:
+                patch = patch[:max_patch_chars]
+            truncated.append(CommitFile(
+                filename=f.filename,
+                status=f.status,
+                additions=f.additions,
+                deletions=f.deletions,
+                patch=patch,
+            ))
+        return GitHubCommit(
+            sha=commit.sha,
+            message=commit.message,
+            author_name=commit.author_name,
+            author_email=commit.author_email,
+            committed_at=commit.committed_at,
+            files=truncated,
+        )
+
+    return list(await asyncio.gather(*[_fetch_one(c) for c in commits]))
 
 
 async def fetch_blob_content(token: str, repo: str, blob_sha: str) -> bytes:
