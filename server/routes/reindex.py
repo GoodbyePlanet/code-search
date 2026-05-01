@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import logging
+import time
+
 from mcp.server.fastmcp import FastMCP
 from starlette.requests import Request
 from starlette.responses import JSONResponse
@@ -7,6 +10,8 @@ from starlette.responses import JSONResponse
 from server.indexer.git_history import GitHistoryPipeline
 from server.indexer.pipeline import IndexPipeline
 from server.state import get_commit_store, get_store
+
+logger = logging.getLogger(__name__)
 
 
 def register_http_routes(mcp: FastMCP) -> None:
@@ -28,11 +33,15 @@ def register_http_routes(mcp: FastMCP) -> None:
 
         pipeline = IndexPipeline(get_store())
 
+        started = time.monotonic()
+        logger.info("Reindex started: service=%s force=%s", service or "ALL", force)
+
         if service:
             result = await pipeline.index_service(service, force=force)
         else:
             result = await pipeline.index_all(force=force)
 
+        logger.info("Reindex done in %.1fs: %s", time.monotonic() - started, result)
         return JSONResponse(result)
 
     @mcp.custom_route("/reindex-history", methods=["POST"])
@@ -52,9 +61,13 @@ def register_http_routes(mcp: FastMCP) -> None:
 
         pipeline = GitHistoryPipeline(get_commit_store())
 
+        started = time.monotonic()
+        logger.info("Reindex history started: service=%s force=%s", service or "ALL", force)
+
         if service:
             result = await pipeline.index_service(service, force=force)
         else:
             result = await pipeline.index_all(force=force)
 
+        logger.info("Reindex history done in %.1fs: %s", time.monotonic() - started, result)
         return JSONResponse(result)
