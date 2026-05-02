@@ -1,7 +1,7 @@
 from __future__ import annotations
 
+import asyncio
 import uuid
-from datetime import datetime, timezone
 from typing import Any
 
 from qdrant_client import AsyncQdrantClient
@@ -192,7 +192,7 @@ class CommitStore:
         service: str,
         payloads: list[dict[str, Any]],
     ) -> None:
-        for p in payloads:
+        async def _update_one(p: dict[str, Any]) -> None:
             point_id = _commit_point_id(service, p["sha"])
             await self._client.set_payload(
                 collection_name=self._collection,
@@ -203,6 +203,8 @@ class CommitStore:
                 },
                 points=[point_id],
             )
+
+        await asyncio.gather(*(_update_one(p) for p in payloads))
 
     async def close(self) -> None:
         await self._client.close()

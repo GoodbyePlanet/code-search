@@ -4,6 +4,8 @@ import logging
 from datetime import datetime, timezone
 from typing import Any
 
+import httpx
+
 from server.config import settings
 from server.embeddings.base import EmbeddingProvider
 from server.embeddings.jina import get_embedding_provider
@@ -67,10 +69,12 @@ class GitHistoryPipeline:
         if svc is None:
             return {"error": 1, "new": 0, "skipped": 0}
 
-        commits = await list_commits(
-            settings.github_token, svc.github_repo, svc.github_ref,
-            root=svc.root, max_commits=settings.git_history_max_commits,
-        )
+        async with httpx.AsyncClient() as http_client:
+            commits = await list_commits(
+                settings.github_token, svc.github_repo, svc.github_ref,
+                root=svc.root, max_commits=settings.git_history_max_commits,
+                client=http_client,
+            )
 
         existing_shas = set() if force else await self._store.get_indexed_shas(svc.name)
         new_commits = [c for c in commits if c.sha not in existing_shas]

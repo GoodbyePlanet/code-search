@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
 from typing import Any
 
 from qdrant_client import AsyncQdrantClient
@@ -10,7 +9,6 @@ from qdrant_client.models import (
     FieldCondition,
     Filter,
     HnswConfigDiff,
-    MatchAny,
     MatchValue,
     OptimizersConfigDiff,
     PayloadSchemaType,

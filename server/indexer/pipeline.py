@@ -6,6 +6,8 @@ import textwrap
 from datetime import datetime, timezone
 from typing import Any
 
+import httpx
+
 from server.config import ServiceConfig, settings
 from server.embeddings.base import EmbeddingProvider
 from server.embeddings.jina import get_embedding_provider
@@ -28,7 +30,7 @@ def _build_embedding_text(symbol: CodeSymbol, service_name: str) -> str:
     type_display = symbol.symbol_type.replace("_", " ")
     preamble = f"{lang_display} {type_display} `{symbol.name}`"
     if symbol.parent_name:
-        preamble += f" in {symbol.symbol_type == 'method' and 'class' or 'module'} `{symbol.parent_name}`"
+        preamble += f" in class `{symbol.parent_name}`"
     preamble += f" (service: {service_name})"
     lines.append(preamble)
 
@@ -110,50 +112,57 @@ class IndexPipeline:
         if svc is None:
             return {"error": 1, "files": 0, "chunks": 0}
 
-        github_files = await list_github_files(
-            settings.github_token, svc.github_repo, svc.github_ref,
-            svc.name, svc.exclude, svc.root,
-        )
+        async with httpx.AsyncClient() as http_client:
+            github_files = await list_github_files(
+                settings.github_token, svc.github_repo, svc.github_ref,
+                svc.name, svc.exclude, svc.root,
+                client=http_client,
+            )
 
-        existing_hashes = await self._store.get_indexed_file_hashes(svc.name)
+            existing_hashes = await self._store.get_indexed_file_hashes(svc.name)
 
-        indexed_files = 0
-        total_chunks = 0
-        skipped = 0
+            indexed_files = 0
+            total_chunks = 0
+            skipped = 0
 
-        for f in github_files:
-            # "{service_name}/{path_in_repo}" — consistent path format across all tools
-            stored_path = f"{svc.name}/{f.rel_path}"
+            for f in github_files:
+                # "{service_name}/{path_in_repo}" — consistent path format across all tools
+                stored_path = f"{svc.name}/{f.rel_path}"
 
-            # blob_sha IS the content fingerprint — no download needed to detect unchanged files
-            if not force and existing_hashes.get(stored_path) == f.blob_sha:
-                skipped += 1
-                continue
+                # blob_sha IS the content fingerprint — no download needed to detect unchanged files
+                if not force and existing_hashes.get(stored_path) == f.blob_sha:
+                    skipped += 1
+                    continue
 
-            try:
-                content = await fetch_blob_content(settings.github_token, svc.github_repo, f.blob_sha)
-            except Exception as exc:
-                logger.error("Failed to fetch %s: %s", stored_path, exc)
-                continue
+                try:
+                    content = await fetch_blob_content(
+                        settings.github_token, svc.github_repo, f.blob_sha,
+                        client=http_client,
+                    )
+                except Exception as exc:
+                    logger.error("Failed to fetch %s: %s", stored_path, exc)
+                    continue
 
-            await self._store.delete_by_file(svc.name, stored_path)
-            symbols = parse_file(content, stored_path)
-            if not symbols:
-                continue
+                symbols = parse_file(content, stored_path)
+                if not symbols:
+                    # File has no indexable symbols; clean up any stale entries.
+                    await self._store.delete_by_file(svc.name, stored_path)
+                    continue
 
-            texts = [_build_embedding_text(s, svc.name) for s in symbols]
-            try:
-                vectors = await self._embedder.embed_batch(texts)
-            except Exception as exc:
-                logger.error("Embedding failed for %s: %s", stored_path, exc)
-                continue
+                texts = [_build_embedding_text(s, svc.name) for s in symbols]
+                try:
+                    vectors = await self._embedder.embed_batch(texts)
+                except Exception as exc:
+                    logger.error("Embedding failed for %s: %s", stored_path, exc)
+                    continue  # keep existing index entries until embedding succeeds
 
-            payloads = [_symbol_to_payload(s, svc.name, f.blob_sha) for s in symbols]
-            await self._store.upsert_chunks(payloads, vectors)
+                payloads = [_symbol_to_payload(s, svc.name, f.blob_sha) for s in symbols]
+                await self._store.delete_by_file(svc.name, stored_path)
+                await self._store.upsert_chunks(payloads, vectors)
 
-            indexed_files += 1
-            total_chunks += len(symbols)
-            logger.info("Indexed %s: %d symbols", stored_path, len(symbols))
+                indexed_files += 1
+                total_chunks += len(symbols)
+                logger.info("Indexed %s: %d symbols", stored_path, len(symbols))
 
         all_stored_paths = {f"{svc.name}/{f.rel_path}" for f in github_files}
         for stale_path in existing_hashes:

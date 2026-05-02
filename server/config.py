@@ -40,7 +40,7 @@ class Settings(BaseSettings):
     mcp_transport: Literal["streamable-http", "sse", "stdio"] = Field(
         default="streamable-http", alias="MCP_TRANSPORT"
     )
-    mcp_host: str = Field(default="0.0.0.0", alias="MCP_HOST")
+    mcp_host: str = Field(default="127.0.0.1", alias="MCP_HOST")
     mcp_port: int = Field(default=8090, alias="MCP_PORT")
 
     config_path: str = Field(default="./config.yaml", alias="CONFIG_PATH")

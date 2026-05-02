@@ -37,6 +37,7 @@ services:
     environment:
       EMBEDDINGS_URL: http://jina-embeddings:80
       QDRANT_URL: http://qdrant:6333
+      MCP_HOST: 0.0.0.0
     depends_on:
       qdrant:
         condition: service_healthy

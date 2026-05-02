@@ -11,9 +11,10 @@ TSX_LANGUAGE = Language(tree_sitter_typescript.language_tsx())
 
 def _has_jsx_return(node: Node, source: bytes) -> bool:
     src = _node_text(node, source)
-    return (
-        "<" in src
-        and ("return (" in src or "return<" in src or "return (" in src)
+    return "<" in src and (
+        "return (" in src
+        or "return<" in src
+        or "return <" in src
         or "jsx" in src.lower()[:200]
     )
 

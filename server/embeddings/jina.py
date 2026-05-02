@@ -20,6 +20,7 @@ class JinaEmbeddingProvider(EmbeddingProvider):
     def __init__(self) -> None:
         self._base_url = settings.embeddings_url.rstrip("/")
         self._dims = settings.embeddings_dimensions
+        self._client = httpx.AsyncClient(timeout=120.0)
 
     @property
     def dimensions(self) -> int:
@@ -29,34 +30,48 @@ class JinaEmbeddingProvider(EmbeddingProvider):
         if not texts:
             return []
         all_vectors: list[list[float]] = []
-        async with httpx.AsyncClient(timeout=120.0) as client:
-            for i in range(0, len(texts), _BATCH_SIZE):
-                batch = texts[i : i + _BATCH_SIZE]
-                resp = await client.post(
-                    f"{self._base_url}{_EMBED_PATH}",
-                    json={"inputs": batch},
+        for i in range(0, len(texts), _BATCH_SIZE):
+            batch = texts[i : i + _BATCH_SIZE]
+            resp = await self._client.post(
+                f"{self._base_url}{_EMBED_PATH}",
+                json={"inputs": batch},
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            # TEI returns a list of vectors directly
+            if isinstance(data, list):
+                batch_vectors: list[list[float]] = data
+            else:
+                # fallback: OpenAI-style { "data": [...] }
+                batch_vectors = [item["embedding"] for item in data.get("data", [])]
+            if len(batch_vectors) != len(batch):
+                raise ValueError(
+                    f"Embedding server returned {len(batch_vectors)} vectors for "
+                    f"{len(batch)} inputs — response may be malformed"
                 )
-                resp.raise_for_status()
-                data = resp.json()
-                # TEI returns a list of vectors directly
-                if isinstance(data, list):
-                    all_vectors.extend(data)
-                else:
-                    # fallback: OpenAI-style { "data": [...] }
-                    for item in data.get("data", []):
-                        all_vectors.append(item["embedding"])
+            all_vectors.extend(batch_vectors)
         return all_vectors
 
     async def embed_query(self, text: str) -> list[float]:
         vectors = await self.embed_batch([text])
         return vectors[0] if vectors else []
 
+    async def close(self) -> None:
+        await self._client.aclose()
 
-_provider: EmbeddingProvider | None = None
+
+_provider: JinaEmbeddingProvider | None = None
 
 
-def get_embedding_provider() -> EmbeddingProvider:
+def get_embedding_provider() -> JinaEmbeddingProvider:
     global _provider
     if _provider is None:
         _provider = JinaEmbeddingProvider()
     return _provider
+
+
+async def close_embedding_provider() -> None:
+    global _provider
+    if _provider is not None:
+        await _provider.close()
+        _provider = None

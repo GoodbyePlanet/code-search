@@ -7,6 +7,7 @@ from typing import AsyncIterator
 from mcp.server.fastmcp import FastMCP
 
 from server.config import settings
+from server.embeddings.jina import close_embedding_provider
 from server.state import get_commit_store, get_store, set_commit_store, set_store
 from server.store.commit_store import CommitStore
 from server.store.qdrant import QdrantStore
@@ -33,6 +34,7 @@ async def lifespan(_: FastMCP) -> AsyncIterator[None]:
         await get_commit_store().close()
     except RuntimeError:
         pass
+    await close_embedding_provider()
     logger.info("code-search MCP server stopped.")
 
 

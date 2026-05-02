@@ -5,7 +5,10 @@ import base64
 import fnmatch
 import logging
 import os
+import time
+from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
+from typing import Any, AsyncIterator
 
 import httpx
 
@@ -59,6 +62,40 @@ def _auth_headers(token: str) -> dict[str, str]:
     }
 
 
+@asynccontextmanager
+async def _client_ctx(client: httpx.AsyncClient | None) -> AsyncIterator[httpx.AsyncClient]:
+    """Yield the provided client, or create and close a temporary one."""
+    if client is not None:
+        yield client
+    else:
+        async with httpx.AsyncClient() as c:
+            yield c
+
+
+async def _gh_get(
+    client: httpx.AsyncClient,
+    url: str,
+    token: str,
+    params: dict | None = None,
+    timeout: float = 30.0,
+) -> Any:
+    """GET a GitHub API URL, retrying up to 3 times on rate-limit responses (403/429)."""
+    headers = _auth_headers(token)
+    for _ in range(3):
+        r = await client.get(url, headers=headers, params=params, timeout=timeout)
+        if r.status_code not in (403, 429):
+            r.raise_for_status()
+            return r.json()
+        reset_ts = float(r.headers.get("X-RateLimit-Reset", 0))
+        retry_after = float(r.headers.get("Retry-After", 60))
+        now = time.time()
+        wait = min(max(retry_after, reset_ts - now if reset_ts > now else 0.0), 120.0)
+        logger.warning("GitHub rate-limited (HTTP %d) — retrying in %.0fs", r.status_code, wait)
+        await asyncio.sleep(wait)
+    r.raise_for_status()  # raise final rate-limit error after exhausting retries
+    return r.json()  # unreachable
+
+
 async def list_github_files(
     token: str,
     repo: str,
@@ -66,6 +103,7 @@ async def list_github_files(
     service_name: str,
     exclude: list[str],
     root: str | None = None,
+    client: httpx.AsyncClient | None = None,
 ) -> list[GitHubFile]:
     """List matching files via the git trees API (single request for the full tree).
 
@@ -73,15 +111,18 @@ async def list_github_files(
     indexed. If *root* is set, only files under that path prefix are considered.
     Paths matching *exclude* patterns are skipped.
     """
-    async with httpx.AsyncClient() as client:
-        r = await client.get(
-            f"{_GITHUB_API}/repos/{repo}/git/trees/{ref}",
-            params={"recursive": "1"},
-            headers=_auth_headers(token),
-            timeout=30,
+    async with _client_ctx(client) as c:
+        tree = await _gh_get(
+            c, f"{_GITHUB_API}/repos/{repo}/git/trees/{ref}",
+            token, {"recursive": "1"}, timeout=30,
         )
-        r.raise_for_status()
-        tree = r.json()
+
+    if tree.get("truncated"):
+        logger.warning(
+            "GitHub trees response truncated for %s@%s — repo is very large; "
+            "some files may be missing from the index.",
+            repo, ref,
+        )
 
     root_prefix = root.rstrip("/") + "/" if root else None
 
@@ -110,25 +151,19 @@ async def list_commits(
     ref: str,
     root: str | None = None,
     max_commits: int = 500,
+    client: httpx.AsyncClient | None = None,
 ) -> list[GitHubCommit]:
     """Fetch recent commits from the GitHub commits API, optionally filtered to a path prefix."""
     commits: list[GitHubCommit] = []
     page = 1
     per_page = 100
 
-    async with httpx.AsyncClient() as client:
+    async with _client_ctx(client) as c:
         while len(commits) < max_commits:
             params: dict[str, str | int] = {"sha": ref, "per_page": per_page, "page": page}
             if root:
                 params["path"] = root
-            r = await client.get(
-                f"{_GITHUB_API}/repos/{repo}/commits",
-                params=params,
-                headers=_auth_headers(token),
-                timeout=30,
-            )
-            r.raise_for_status()
-            batch = r.json()
+            batch = await _gh_get(c, f"{_GITHUB_API}/repos/{repo}/commits", token, params)
             if not batch:
                 break
             for item in batch:
@@ -147,16 +182,22 @@ async def list_commits(
     return commits[:max_commits]
 
 
-async def fetch_commit_detail(token: str, repo: str, sha: str) -> list[CommitFile]:
+async def fetch_commit_detail(
+    token: str,
+    repo: str,
+    sha: str,
+    client: httpx.AsyncClient | None = None,
+) -> list[CommitFile]:
     """Fetch changed files for a single commit via GET /repos/{repo}/commits/{sha}."""
-    async with httpx.AsyncClient() as client:
-        r = await client.get(
-            f"{_GITHUB_API}/repos/{repo}/commits/{sha}",
-            headers=_auth_headers(token),
-            timeout=30,
+    async with _client_ctx(client) as c:
+        data = await _gh_get(c, f"{_GITHUB_API}/repos/{repo}/commits/{sha}", token, timeout=30)
+
+    raw_files = data.get("files", [])
+    if len(raw_files) >= 300:
+        logger.warning(
+            "Commit %s has >= 300 changed files — GitHub API limit reached, some files may be omitted.",
+            sha[:8],
         )
-        r.raise_for_status()
-        data = r.json()
     return [
         CommitFile(
             filename=f["filename"],
@@ -165,7 +206,7 @@ async def fetch_commit_detail(token: str, repo: str, sha: str) -> list[CommitFil
             deletions=f.get("deletions", 0),
             patch=f.get("patch"),
         )
-        for f in data.get("files", [])
+        for f in raw_files
     ]
 
 
@@ -179,52 +220,52 @@ async def fetch_commits_with_diffs(
     """Fetch diff details for a batch of commits in parallel, bounded by a semaphore."""
     sem = asyncio.Semaphore(_DIFF_CONCURRENCY)
 
-    async def _fetch_one(commit: GitHubCommit) -> GitHubCommit:
-        async with sem:
-            try:
-                files = await fetch_commit_detail(token, repo, commit.sha)
-            except Exception as exc:
-                logger.warning("Failed to fetch diff for %s: %s", commit.sha[:8], exc)
-                return commit
-        truncated = []
-        for f in files[:max_files]:
-            patch = f.patch
-            if patch and len(patch) > max_patch_chars:
-                patch = patch[:max_patch_chars]
-            truncated.append(CommitFile(
-                filename=f.filename,
-                status=f.status,
-                additions=f.additions,
-                deletions=f.deletions,
-                patch=patch,
-            ))
-        return GitHubCommit(
-            sha=commit.sha,
-            message=commit.message,
-            author_name=commit.author_name,
-            author_email=commit.author_email,
-            committed_at=commit.committed_at,
-            files=truncated,
-        )
+    async with httpx.AsyncClient() as shared_client:
+        async def _fetch_one(commit: GitHubCommit) -> GitHubCommit:
+            async with sem:
+                try:
+                    files = await fetch_commit_detail(token, repo, commit.sha, client=shared_client)
+                except Exception as exc:
+                    logger.warning("Failed to fetch diff for %s: %s", commit.sha[:8], exc)
+                    return commit
+            truncated = []
+            for f in files[:max_files]:
+                patch = f.patch
+                if patch and len(patch) > max_patch_chars:
+                    patch = patch[:max_patch_chars]
+                truncated.append(CommitFile(
+                    filename=f.filename,
+                    status=f.status,
+                    additions=f.additions,
+                    deletions=f.deletions,
+                    patch=patch,
+                ))
+            return GitHubCommit(
+                sha=commit.sha,
+                message=commit.message,
+                author_name=commit.author_name,
+                author_email=commit.author_email,
+                committed_at=commit.committed_at,
+                files=truncated,
+            )
 
-    return list(await asyncio.gather(*[_fetch_one(c) for c in commits]))
+        return list(await asyncio.gather(*[_fetch_one(commit) for commit in commits]))
 
 
-async def fetch_blob_content(token: str, repo: str, blob_sha: str) -> bytes:
+async def fetch_blob_content(
+    token: str,
+    repo: str,
+    blob_sha: str,
+    client: httpx.AsyncClient | None = None,
+) -> bytes:
     """Fetch file content by git blob SHA. Used during indexing — avoids re-resolving paths."""
-    async with httpx.AsyncClient() as client:
-        r = await client.get(
-            f"{_GITHUB_API}/repos/{repo}/git/blobs/{blob_sha}",
-            headers=_auth_headers(token),
-            timeout=60,
-        )
-        r.raise_for_status()
-        data = r.json()
-        return base64.b64decode(data["content"].replace("\n", ""))
+    async with _client_ctx(client) as c:
+        data = await _gh_get(c, f"{_GITHUB_API}/repos/{repo}/git/blobs/{blob_sha}", token, timeout=60)
+    return base64.b64decode(data["content"].replace("\n", ""))
 
 
 async def fetch_file_content(token: str, repo: str, path: str, ref: str) -> bytes:
-    """Fetch file content by path and ref. Used by get_code_context for current file version."""
+    """Fetch file content by path and ref. Falls back to blob API for files > 1 MB."""
     async with httpx.AsyncClient() as client:
         r = await client.get(
             f"{_GITHUB_API}/repos/{repo}/contents/{path}",
@@ -234,4 +275,14 @@ async def fetch_file_content(token: str, repo: str, path: str, ref: str) -> byte
         )
         r.raise_for_status()
         data = r.json()
-        return base64.b64decode(data["content"].replace("\n", ""))
+
+    content = data.get("content")
+    if content:
+        return base64.b64decode(content.replace("\n", ""))
+
+    # Contents API returns null content for files > 1 MB; re-fetch via the blob SHA.
+    blob_sha = data.get("sha")
+    if blob_sha:
+        return await fetch_blob_content(token, repo, blob_sha)
+
+    raise ValueError(f"No content available for {path}@{ref}")
