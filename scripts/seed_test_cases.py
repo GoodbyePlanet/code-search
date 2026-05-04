@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Seed TEST_CASES for validate_hybrid.py from real Qdrant data.
+Seed TEST_CASES for validate_hybrid.py / validate_dense.py from real Qdrant data.
 
 Scrolls the code_symbols collection, picks multi-word identifiers across
 all meaningful symbol types, and prints a ready-to-paste TEST_CASES list
@@ -19,12 +19,15 @@ Usage:
     uv run scripts/seed_test_cases.py
     uv run scripts/seed_test_cases.py --per-bucket 5 --scan-limit 1000
     uv run scripts/seed_test_cases.py --url http://localhost:6333 --collection code_symbols
+    uv run scripts/seed_test_cases.py --kinds semantic          # for validate_dense.py
+    uv run scripts/seed_test_cases.py --kinds exact tokenized   # identifier-only subset
 """
 
 from __future__ import annotations
 
 import argparse
 import asyncio
+import json
 import os
 import re
 import sys
@@ -49,7 +52,7 @@ SYMBOL_TYPES = [
     "react_hook",
 ]
 
-DEFAULT_PER_BUCKET = 5
+DEFAULT_PER_BUCKET = 10
 DEFAULT_SCAN_LIMIT = 500
 
 
@@ -244,7 +247,7 @@ def render(all_cases: list[tuple[str, str, str, str]]) -> str:
             current_symbol = expected
 
         padding = " " * max(1, 52 - len(repr(query)))
-        lines.append(f"    ({query!r},{padding}{expected!r}),  # {kind}")
+        lines.append(f"    ({query!r},{padding}{expected!r},  {kind!r}),")
 
     lines.append("]")
     return "\n".join(lines)
@@ -254,7 +257,14 @@ def render(all_cases: list[tuple[str, str, str, str]]) -> str:
 # Entry point
 # ---------------------------------------------------------------------------
 
-async def main(url: str, collection: str, per_bucket: int, scan_limit: int) -> None:
+async def main(
+    url: str,
+    collection: str,
+    per_bucket: int,
+    scan_limit: int,
+    kinds: set[str] | None,
+    output_json: str | None,
+) -> None:
     client = AsyncQdrantClient(url=url)
     try:
         info = await client.get_collection(collection)
@@ -273,7 +283,8 @@ async def main(url: str, collection: str, per_bucket: int, scan_limit: int) -> N
             )
             for c in picked:
                 for query, expected, kind in make_test_cases(c):
-                    all_cases.append((query, expected, kind, symbol_type))
+                    if kinds is None or kind in kinds:
+                        all_cases.append((query, expected, kind, symbol_type))
 
         if not all_cases:
             print(
@@ -282,8 +293,13 @@ async def main(url: str, collection: str, per_bucket: int, scan_limit: int) -> N
             )
             sys.exit(1)
 
-        print()
-        print(render(all_cases))
+        if output_json:
+            with open(output_json, "w") as f:
+                json.dump([[q, e, k] for q, e, k, _ in all_cases], f)
+            print(f"# Wrote {len(all_cases)} test cases to {output_json}", file=sys.stderr)
+        else:
+            print()
+            print(render(all_cases))
 
     finally:
         await client.close()
@@ -317,5 +333,25 @@ if __name__ == "__main__":
         metavar="N",
         help=f"Max points to scan per symbol type (default: {DEFAULT_SCAN_LIMIT})",
     )
+    parser.add_argument(
+        "--kinds",
+        nargs="+",
+        choices=["exact", "tokenized", "snake_case", "prefix", "semantic"],
+        default=None,
+        metavar="KIND",
+        help="Only emit test cases of these kinds (default: all). "
+             "Use '--kinds semantic' for validate_dense.py.",
+    )
+    parser.add_argument(
+        "--output-json",
+        default=None,
+        metavar="FILE",
+        help="Write test cases to a JSON file instead of printing Python code. "
+             "Used by run_validation.py.",
+    )
     args = parser.parse_args()
-    asyncio.run(main(args.url, args.collection, args.per_bucket, args.scan_limit))
+    asyncio.run(
+        main(args.url, args.collection, args.per_bucket, args.scan_limit,
+             set(args.kinds) if args.kinds else None,
+             args.output_json)
+    )

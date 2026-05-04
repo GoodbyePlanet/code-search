@@ -1,0 +1,252 @@
+[
+  [
+    "BeginRegistration POST /api/register/begin",
+    "BeginRegistration",
+    "semantic"
+  ],
+  [
+    "FinishRegistration POST /api/register/finish",
+    "FinishRegistration",
+    "semantic"
+  ],
+  [
+    "BeginLogin POST /api/authenticate/begin",
+    "BeginLogin",
+    "semantic"
+  ],
+  [
+    "FinishLogin POST /api/authenticate/finish",
+    "FinishLogin",
+    "semantic"
+  ],
+  [
+    "GetRegisteredPasskeys GET /api/users/:username/registered-passkeys",
+    "GetRegisteredPasskeys",
+    "semantic"
+  ],
+  [
+    "Spring Security web security filter chain setup",
+    "SecurityConfiguration",
+    "semantic"
+  ],
+  [
+    "OAuth2 authorization server beans and configuration",
+    "AuthorizationServerConfiguration",
+    "semantic"
+  ],
+  [
+    "JPA service for persisting OAuth2 authorization consents",
+    "JpaAuthorizationConsentService",
+    "semantic"
+  ],
+  [
+    "JPA-backed storage and retrieval of OAuth2 authorizations",
+    "JpaAuthorizationService",
+    "semantic"
+  ],
+  [
+    "authentication provider that checks for leaked or breached passwords",
+    "LeakedPasswordsAuthenticationProvider",
+    "semantic"
+  ],
+  [
+    "authentication provider for WebAuthn passkey login",
+    "WebAuthnAuthenticationProvider",
+    "semantic"
+  ],
+  [
+    "controller for WebAuthn passkey registration and authentication",
+    "WebAuthnController",
+    "semantic"
+  ],
+  [
+    "initializes OAuth2 registered clients at application startup",
+    "RegisteredClientInitializer",
+    "semantic"
+  ],
+  [
+    "seeds initial user accounts in the database on startup",
+    "UserInitializer",
+    "semantic"
+  ],
+  [
+    "JPA implementation of the OAuth2 registered client repository",
+    "JpaClientRepository",
+    "semantic"
+  ],
+  [
+    "exception thrown when WebAuthn operation fails",
+    "WebAuthnException",
+    "semantic"
+  ],
+  [
+    "Spring Cloud Gateway route definitions with token relay",
+    "RouteConfiguration",
+    "semantic"
+  ],
+  [
+    "bean that customizes JWT token claims before issuing",
+    "tokenCustomizer",
+    "semantic"
+  ],
+  [
+    "find an OAuth2 authorization by any token or code value",
+    "findByStateOrAuthorizationCodeValueOrAccessTokenValueOrRefreshTokenValueOrOidcIdTokenValueOrUserCodeValueOrDeviceCodeValue",
+    "semantic"
+  ],
+  [
+    "fetch a user record by their username",
+    "GetUserByUsername",
+    "semantic"
+  ],
+  [
+    "retrieve a user together with their associated passkey credentials",
+    "GetUserWithCredentials",
+    "semantic"
+  ],
+  [
+    "initialize the WebAuthn relying party configuration",
+    "InitWebAuthn",
+    "semantic"
+  ],
+  [
+    "HTTP handler to check if a password appears in breach data",
+    "CheckPasswordHandler",
+    "semantic"
+  ],
+  [
+    "HTTP handler to look up a password hash in the leaked passwords store",
+    "GetByHashHandler",
+    "semantic"
+  ],
+  [
+    "open the database connection for the service",
+    "ConnectDatabase",
+    "semantic"
+  ],
+  [
+    "JPA repository for managing authorization consent records",
+    "AuthorizationConsentRepository",
+    "semantic"
+  ],
+  [
+    "repository interface for looking up registered OAuth2 clients",
+    "ClientRepository",
+    "semantic"
+  ],
+  [
+    "client interface for calling the leaked passwords API",
+    "LeakedPasswordsClient",
+    "semantic"
+  ],
+  [
+    "request body for checking if a password has been compromised",
+    "CheckPasswordRequest",
+    "semantic"
+  ],
+  [
+    "response indicating whether a password hash was found in breach data",
+    "CheckPasswordResponse",
+    "semantic"
+  ],
+  [
+    "security configuration",
+    "SecurityConfiguration",
+    "semantic"
+  ],
+  [
+    "service that checks whether a password has been exposed in a breach",
+    "LeakedPasswordsService",
+    "semantic"
+  ],
+  [
+    "repository for storing authorization records",
+    "AuthorizationRepository",
+    "semantic"
+  ],
+  [
+    "authentication provider for hardware security key login",
+    "WebAuthnAuthenticationProvider",
+    "semantic"
+  ],
+  [
+    "persists OAuth2 tokens, codes and authorization state",
+    "JpaAuthorizationService",
+    "semantic"
+  ],
+  [
+    "HTTP client interface for the breached passwords backend",
+    "LeakedPasswordsClient",
+    "semantic"
+  ],
+  [
+    "starts a passkey authentication ceremony",
+    "BeginLogin",
+    "semantic"
+  ],
+  [
+    "error raised during a passkey or WebAuthn operation",
+    "WebAuthnException",
+    "semantic"
+  ],
+  [
+    "gateway route definitions",
+    "RouteConfiguration",
+    "semantic"
+  ],
+  [
+    "creates default application users on startup",
+    "UserInitializer",
+    "semantic"
+  ],
+  [
+    "find authorization by token value",
+    "findByStateOrAuthorizationCodeValueOrAccessTokenValueOrRefreshTokenValueOrOidcIdTokenValueOrUserCodeValueOrDeviceCodeValue",
+    "semantic"
+  ],
+  [
+    "manages user consent grants for OAuth2 scopes",
+    "JpaAuthorizationConsentService",
+    "semantic"
+  ],
+  [
+    "represents a registered passkey device credential",
+    "RegisteredPasskey",
+    "semantic"
+  ],
+  [
+    "connect to the database",
+    "ConnectDatabase",
+    "semantic"
+  ],
+  [
+    "endpoint to begin passkey registration",
+    "BeginRegistration",
+    "semantic"
+  ],
+  [
+    "validates identity using a hardware authenticator",
+    "WebAuthnAuthenticationProvider",
+    "semantic"
+  ],
+  [
+    "exposes endpoints for querying the leaked passwords dataset",
+    "LeakedPasswordsApi",
+    "semantic"
+  ],
+  [
+    "pre-loads OAuth2 clients into the authorization server",
+    "RegisteredClientInitializer",
+    "semantic"
+  ],
+  [
+    "retrieves and deserializes a stored WebAuthn session",
+    "getAndParseWebAuthnSession",
+    "semantic"
+  ],
+  [
+    "adds custom claims to JWT access tokens",
+    "JwtTokenCustomizerConfig",
+    "semantic"
+  ]
+]
