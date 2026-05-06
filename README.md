@@ -125,18 +125,24 @@ Tests live under `tests/`:
 
 ## MCP Tools
 
-| Tool                    | Description                                                                                                                                    |
-|-------------------------|------------------------------------------------------------------------------------------------------------------------------------------------|
-| `search_code`           | Semantic search by query, with optional filters for language, service, symbol type                                                             |
-| `find_symbol`           | Look up a symbol by name (exact or fuzzy)                                                                                                      |
-| `find_usages`           | Find code that references a given symbol name (semantic search + textual filter)                                                               |
-| `get_code_context`      | Fetch the full source of a file — or a specific symbol within it — directly from GitHub                                                        |
-| `reindex`               | Trigger code indexing of one or all services (incremental by default; `force` to re-embed)                                                     |
-| `index_history`         | Index git commit history; automatically fetches diffs for commits missing them                                                                 |
-| `search_commits`        | Search git commit history with natural language                                                                                                |
-| `get_commit`            | Get full details for a specific commit including changed files and diffs                                                                       |
-| `list_indexed_services` | List indexed services with file counts, languages, and last-indexed time                                                                       |
-| `index_stats`           | Show Qdrant collection statistics and configured services                                                                                      |
+| Tool                    | Description                                                                                |
+|-------------------------|--------------------------------------------------------------------------------------------|
+| `search_code`           | Semantic search by query, with optional filters for language, service, symbol type         |
+| `find_symbol`           | Look up a symbol by name (exact or fuzzy)                                                  |
+| `find_usages`           | Find code that references a given symbol name (semantic search + textual filter)           |
+| `get_code_context`      | Fetch the full source of a file — or a specific symbol within it — directly from GitHub    |
+| `reindex`               | Trigger code indexing of one or all services (incremental by default; `force` to re-embed) |
+| `index_history`         | Index git commit history; automatically fetches diffs for commits missing them             |
+| `search_commits`        | Search git commit history with natural language                                            |
+| `get_commit`            | Get full details for a specific commit including changed files and diffs                   |
+| `list_indexed_services` | List indexed services with file counts, languages, and last-indexed time                   |
+| `index_stats`           | Show Qdrant collection statistics and configured services                                  |
+
+## MCP Prompts
+
+| Prompt             | Arguments | Description                                                                                                                                   |
+|--------------------|-----------|-----------------------------------------------------------------------------------------------------------------------------------------------|
+| `service_overview` | `service` | Walks the client through producing an architectural overview of a service: HTTP entry points, domain types, and notable framework conventions |
 
 ## HTTP API
 
@@ -194,5 +200,6 @@ server/
 ├── indexer/         # GitHub fetcher, code indexing pipeline, git history pipeline
 ├── store/           # Qdrant vector store (code_symbols and git_commits)
 ├── tools/           # MCP tool implementations (search, index, history, admin)
+├── prompts/         # MCP prompt templates (service_overview)
 └── routes/          # HTTP routes (reindex, reindex-history)
 ```
