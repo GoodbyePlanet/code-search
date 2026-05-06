@@ -1,5 +1,9 @@
 # code-search
 
+![MCP Server](https://img.shields.io/badge/MCP-Server-blue)
+![Python 3.12+](https://img.shields.io/badge/Python-3.12%2B-green)
+![License MIT](https://img.shields.io/badge/License-MIT-yellow)
+
 An MCP (Model Context Protocol) server that provides semantic code search across microservices codebases.
 It indexes code symbols and git history from GitHub repositories and makes them searchable via natural
 language queries or symbol name lookups.
