@@ -2,7 +2,7 @@
 ![Python 3.12+](https://img.shields.io/badge/Python-3.12%2B-green)
 ![License MIT](https://img.shields.io/badge/License-MIT-yellow)
 
-# code-search
+# semcode
 
 An MCP (Model Context Protocol) server that provides semantic code search across microservices codebases.
 It indexes code symbols and git history from GitHub repositories and makes them searchable via natural
@@ -79,7 +79,7 @@ This starts three services with health checks and persistent volumes:
 |---------------------------|------------------------------|----------------------------------|------------------------|
 | **Qdrant**                | `6333` (HTTP), `6334` (gRPC) | `qdrant_data`                    | Vector DB              |
 | **Jina Embeddings** (TEI) | `8087`                       | `embeddings_cache`               | Embedding model server |
-| **code-search MCP**       | `8090`                       | mounts `./config.yaml` read-only | MCP + HTTP server      |
+| **semcode MCP**           | `8090`                       | mounts `./config.yaml` read-only | MCP + HTTP server      |
 
 The MCP server starts with empty collections — trigger an initial index by calling the `reindex` MCP tool
 or `POST /reindex` (see below).
@@ -91,7 +91,7 @@ Once the server is running, point your AI client at `http://localhost:8090/mcp`.
 **Claude Code (CLI)**
 
 ```bash
-claude mcp add --transport http code-search http://localhost:8090/mcp
+claude mcp add --transport http semcode http://localhost:8090/mcp
 ```
 
 ## Indexing

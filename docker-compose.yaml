@@ -27,7 +27,7 @@ services:
       timeout: 5s
       retries: 20
 
-  code-search:
+  semcode:
     build: .
     platform: linux/amd64
     ports:

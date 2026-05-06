@@ -17,7 +17,7 @@ def register_service_prompts(mcp: FastMCP) -> None:
         """
         return (
             f"Produce a concise architectural overview of the `{service}` service "
-            f"using the code-search MCP tools. Work through these steps:\n"
+            f"using the semcode MCP tools. Work through these steps:\n"
             f"\n"
             f"1. Call `list_indexed_services` to confirm `{service}` is indexed. "
             f"If it is not, stop and tell the user.\n"

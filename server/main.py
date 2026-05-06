@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(_: FastMCP) -> AsyncIterator[None]:
-    logger.info("Starting code-search MCP server...")
+    logger.info("Starting semcode MCP server...")
     store = QdrantStore()
     await store.ensure_collection()
     set_store(store)
@@ -40,11 +40,11 @@ async def lifespan(_: FastMCP) -> AsyncIterator[None]:
         pass
     await close_embedding_provider()
     await close_sparse_embedding_provider()
-    logger.info("code-search MCP server stopped.")
+    logger.info("semcode MCP server stopped.")
 
 
 mcp = FastMCP(
-    "code-search",
+    "semcode",
     instructions="Semantic code search across microservices codebases. Supports Go, Java, Python, and TypeScript/React.",
     lifespan=lifespan,
     host=settings.mcp_host,
