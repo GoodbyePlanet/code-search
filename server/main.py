@@ -66,6 +66,7 @@ def main() -> None:
     from server.tools.admin import register_admin_tools
     from server.tools.history import register_history_tools
     from server.prompts.service import register_service_prompts
+    from server.prompts.system import register_system_prompts
     from server.routes.reindex import register_http_routes
 
     register_search_tools(mcp)
@@ -73,6 +74,7 @@ def main() -> None:
     register_admin_tools(mcp)
     register_history_tools(mcp)
     register_service_prompts(mcp)
+    register_system_prompts(mcp)
     register_http_routes(mcp)
 
     mcp.run(transport=settings.mcp_transport)
