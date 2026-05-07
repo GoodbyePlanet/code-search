@@ -46,7 +46,7 @@ class Settings(BaseSettings):
     mcp_port: int = Field(default=8090, alias="MCP_PORT")
 
     config_path: str = Field(default="./config.yaml", alias="CONFIG_PATH")
-    github_token: str = Field(alias="GITHUB_TOKEN")
+    github_token: str = Field(default="", alias="GITHUB_TOKEN")
 
     def load_services(self) -> list[ServiceConfig]:
         with open(self.config_path) as f:
