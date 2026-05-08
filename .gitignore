@@ -25,3 +25,6 @@ blog.md
 
 # Local config (use config.example.yaml as a template)
 config.yaml
+
+# Claude Code local settings
+.claude/settings.local.json
