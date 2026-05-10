@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 
 import httpx
@@ -12,6 +13,7 @@ logger = logging.getLogger(__name__)
 _API_URL = "https://api.voyageai.com/v1/embeddings"
 # Voyage caps batch size at 128 inputs per request.
 _BATCH_SIZE = 128
+_BACKOFF_DELAYS = [10, 20, 30, 40]
 
 # Native output dimensions for known models. Some models (voyage-code-3, voyage-3,
 # voyage-3-large) accept an `output_dimension` API parameter to shrink/grow this;
@@ -67,9 +69,7 @@ class VoyageEmbeddingProvider(EmbeddingProvider):
         vectors = await self._embed([text], input_type="query")
         return vectors[0] if vectors else []
 
-    async def _embed(
-        self, texts: list[str], input_type: str
-    ) -> list[list[float]]:
+    async def _embed(self, texts: list[str], input_type: str) -> list[list[float]]:
         if not texts:
             return []
         all_vectors: list[list[float]] = []
@@ -82,7 +82,18 @@ class VoyageEmbeddingProvider(EmbeddingProvider):
             }
             if self._dims_override is not None:
                 body["output_dimension"] = self._dims_override
-            resp = await self._client.post(_API_URL, json=body)
+            for attempt in range(4):
+                resp = await self._client.post(_API_URL, json=body)
+                if resp.status_code != 429:
+                    break
+                retry_after = float(resp.headers.get("Retry-After", 0))
+                wait = retry_after if retry_after > 0 else _BACKOFF_DELAYS[attempt]
+                logger.warning(
+                    "Voyage rate-limited (429) — retrying in %.0fs (attempt %d/4)",
+                    wait,
+                    attempt + 1,
+                )
+                await asyncio.sleep(wait)
             resp.raise_for_status()
             data = resp.json()
             batch_vectors = [item["embedding"] for item in data.get("data", [])]

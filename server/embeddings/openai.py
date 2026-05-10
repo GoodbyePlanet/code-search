@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 
 import httpx
@@ -13,6 +14,7 @@ _API_URL = "https://api.openai.com/v1/embeddings"
 # OpenAI accepts up to 2048 inputs per request; 128 is conservative and matches
 # Voyage's cap so behaviour is uniform across providers.
 _BATCH_SIZE = 128
+_BACKOFF_DELAYS = [10, 20, 30, 40]
 
 _NATIVE_DIMENSIONS: dict[str, int] = {
     "text-embedding-3-large": 3072,
@@ -63,7 +65,18 @@ class OpenAIEmbeddingProvider(EmbeddingProvider):
             body: dict = {"model": self._model, "input": batch}
             if self._dims_override is not None:
                 body["dimensions"] = self._dims_override
-            resp = await self._client.post(_API_URL, json=body)
+            for attempt in range(4):
+                resp = await self._client.post(_API_URL, json=body)
+                if resp.status_code != 429:
+                    break
+                retry_after = float(resp.headers.get("Retry-After", 0))
+                wait = retry_after if retry_after > 0 else _BACKOFF_DELAYS[attempt]
+                logger.warning(
+                    "OpenAI rate-limited (429) — retrying in %.0fs (attempt %d/4)",
+                    wait,
+                    attempt + 1,
+                )
+                await asyncio.sleep(wait)
             resp.raise_for_status()
             data = resp.json()
             batch_vectors = [item["embedding"] for item in data.get("data", [])]

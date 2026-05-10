@@ -55,9 +55,7 @@ async def test_embed_batch_chunks_at_32(provider):
 @respx.mock
 async def test_embed_batch_supports_openai_style_response(provider):
     respx.post("http://tei-test:80/embed").mock(
-        return_value=httpx.Response(
-            200, json={"data": [{"embedding": [0.5] * 768}]}
-        )
+        return_value=httpx.Response(200, json={"data": [{"embedding": [0.5] * 768}]})
     )
     vectors = await provider.embed_batch(["hello"])
     assert vectors == [[0.5] * 768]

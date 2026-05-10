@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 
 import httpx
@@ -124,3 +125,39 @@ async def test_embed_batch_passes_output_dimension_when_overridden(monkeypatch):
 
 async def test_embed_batch_empty(provider):
     assert await provider.embed_batch([]) == []
+
+
+@respx.mock
+async def test_rate_limit_backoff_delays(provider, monkeypatch):
+    sleep_calls: list[float] = []
+
+    async def fake_sleep(seconds: float) -> None:
+        sleep_calls.append(seconds)
+
+    monkeypatch.setattr(asyncio, "sleep", fake_sleep)
+    respx.post("https://api.voyageai.com/v1/embeddings").mock(
+        side_effect=[
+            httpx.Response(429),
+            httpx.Response(429),
+            httpx.Response(429),
+            httpx.Response(200, json=_vectors_response(["a"])),
+        ]
+    )
+    await provider.embed_batch(["a"])
+    assert sleep_calls == [10, 20, 30]
+
+
+@respx.mock
+async def test_rate_limit_all_retries_exhausted_raises(provider, monkeypatch):
+    sleep_calls: list[float] = []
+
+    async def fake_sleep(seconds: float) -> None:
+        sleep_calls.append(seconds)
+
+    monkeypatch.setattr(asyncio, "sleep", fake_sleep)
+    respx.post("https://api.voyageai.com/v1/embeddings").mock(
+        return_value=httpx.Response(429)
+    )
+    with pytest.raises(httpx.HTTPStatusError):
+        await provider.embed_batch(["a"])
+    assert sleep_calls == [10, 20, 30, 40]
