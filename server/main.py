@@ -64,7 +64,13 @@ async def lifespan(_: FastMCP) -> AsyncIterator[None]:
 # so the per-MCP-session lifespan would re-init the store on every client connect.
 mcp = FastMCP(
     "semcode",
-    instructions="Semantic code search across microservices codebases. Supports Go, Java, Python, and TypeScript/React.",
+    instructions=(
+        "Semantic code search across microservices codebases. Hybrid retrieval "
+        "(dense embeddings + BM25) over symbols parsed with Tree-sitter. Supports "
+        "Go, Java, Python, TypeScript/JavaScript (React), Rust, C#, C, C++, Ruby, "
+        "PHP, Kotlin, Scala, Swift, Dart, Bash, SQL, Lua, R, Dockerfile, Docker "
+        "Compose, Markdown, JSON, HTML, CSS, and XML."
+    ),
     lifespan=lifespan if settings.mcp_transport != "streamable-http" else None,
     host=settings.mcp_host,
     port=settings.mcp_port,
