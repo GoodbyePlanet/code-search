@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 _API_URL = "https://api.openai.com/v1/embeddings"
 # OpenAI accepts up to 2048 inputs per request; 128 is conservative and matches
-# Voyage's cap so behaviour is uniform across providers.
+# Voyage's cap, so behavior is uniform across providers.
 _BATCH_SIZE = 128
 _BACKOFF_DELAYS = [10, 20, 30, 40]
 
