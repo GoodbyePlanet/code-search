@@ -64,16 +64,25 @@ code, etc.).
 ## Running
 
 ```bash
+# Jina embeddings (default — local TEI container)
+docker-compose --profile jina up
+# or: make docker-up-jina
+
+# Hosted provider (Voyage / OpenAI) or local Ollama — no TEI container
 docker-compose up
+# or: make docker-up
 ```
 
-This starts three services with health checks and persistent volumes:
+`jina-embeddings` only starts when the `jina` profile is active. For any other provider, omit
+`--profile jina` and set `EMBEDDINGS_PROVIDER` plus the relevant API key in `.env`.
 
-| Service                   | Port                         | Volume                           | Purpose                |
-|---------------------------|------------------------------|----------------------------------|------------------------|
-| **Qdrant**                | `6333` (HTTP), `6334` (gRPC) | `qdrant_data`                    | Vector DB              |
-| **Jina Embeddings** (TEI) | `8087`                       | `embeddings_cache`               | Embedding model server |
-| **semcode MCP**           | `8090`                       | mounts `./config.yaml` read-only | MCP + HTTP server      |
+Services started with health checks and persistent volumes:
+
+| Service                    | Profile | Port                         | Volume                           | Purpose                |
+|----------------------------|---------|------------------------------|----------------------------------|------------------------|
+| **Qdrant**                 | always  | `6333` (HTTP), `6334` (gRPC) | `qdrant_data`                    | Vector DB              |
+| **Jina Embeddings** (TEI)  | `jina`  | `8087`                       | `embeddings_cache`               | Embedding model server |
+| **semcode MCP**            | always  | `8090`                       | mounts `./config.yaml` read-only | MCP + HTTP server      |
 
 The MCP server starts with empty collections — trigger an initial index by calling the `reindex` MCP tool
 or `POST /reindex` (see below).
@@ -200,10 +209,9 @@ the existing Qdrant collection, the server fails fast at startup with a clear er
 offending collection. To switch, drop both collections (`code_symbols` and `git_commits`) via the
 Qdrant UI or API, then reindex. There is no automatic migration.
 
-**Hosted-only setup (no local TEI container):** in `docker-compose.yaml`, comment out the entire
-`jina-embeddings` service block, the `jina-embeddings` entry under `semcode.depends_on`, and the
-`JINA_URL` line under `semcode.environment`. Then set `EMBEDDINGS_PROVIDER` and the relevant API
-key in `.env`.
+**Hosted-only setup (no local TEI container):** set `EMBEDDINGS_PROVIDER` and the relevant API key
+in `.env`, then start without the `jina` profile (`docker-compose up` / `make docker-up`). The
+`jina-embeddings` container will not start.
 
 ## Qdrant collections
 

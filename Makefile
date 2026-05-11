@@ -2,7 +2,7 @@ QDRANT_URL      := http://localhost:6333
 SEMCODE_URL     := http://localhost:8090
 
 .PHONY: qdrant-clean qdrant-dashboard index-code index-history \
-        docker-build-restart docker-up docker-logs docker-logs-semcode
+        docker-build-restart docker-build-restart-jina docker-up docker-up-jina docker-logs docker-logs-semcode
 
 qdrant-clean:
 	curl -sf -X DELETE $(QDRANT_URL)/collections/code_symbols && \
@@ -25,8 +25,14 @@ index-history:
 docker-build-restart:
 	docker compose down && docker compose up --build -d
 
+docker-build-restart-jina:
+	docker compose --profile jina down && docker compose --profile jina up --build -d
+
 docker-up:
 	docker compose up -d
+
+docker-up-jina:
+	docker compose --profile jina up -d
 
 docker-logs:
 	docker compose logs -f
