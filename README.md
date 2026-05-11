@@ -138,9 +138,10 @@ Tests live under `tests/`:
 
 ## MCP Prompts
 
-| Prompt             | Arguments | Description                                                                                                                                   |
-|--------------------|-----------|-----------------------------------------------------------------------------------------------------------------------------------------------|
-| `service_overview` | `service` | Walks the client through producing an architectural overview of a service: HTTP entry points, domain types, and notable framework conventions |
+| Prompt                  | Arguments | Description                                                                                                                                   |
+|-------------------------|-----------|-----------------------------------------------------------------------------------------------------------------------------------------------|
+| `service_overview`      | `service` | Walks the client through producing an architectural overview of a service: HTTP entry points, domain types, and notable framework conventions |
+| `system_design_overview` | *(none)*  | Walks the client through producing a complete system design overview: service inventory, communication topology, shared data stores, and cross-cutting concerns — includes Mermaid diagrams |
 
 ## HTTP API
 
@@ -167,7 +168,7 @@ any context where observing indexing progress matters.
 | `EMBEDDINGS_PROVIDER`       | `jina`                  | One of `jina`, `voyage`, `openai`, `ollama` — see *Embedding providers* below |
 | `GIT_HISTORY_MAX_COMMITS`   | `500`                   | Max commits indexed per service            |
 | `MCP_TRANSPORT`             | `streamable-http`       | One of `streamable-http`, `sse`, `stdio`   |
-| `MCP_HOST` / `MCP_PORT`     | `0.0.0.0` / `8090`      | Server bind address                        |
+| `MCP_HOST` / `MCP_PORT`     | `127.0.0.1` / `8090`    | Server bind address                        |
 | `CONFIG_PATH`               | `./config.yaml`         | Path to the services config file           |
 
 ## Embedding providers
