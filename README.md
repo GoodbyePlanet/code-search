@@ -13,6 +13,8 @@ natural language or by symbol name.
 Hybrid retrieval combines dense embeddings with BM25, so both natural-language queries
 ("where do we publish order events?") and symbol-name lookups (`PlaceOrderRequest`) work well.
 
+Submitted on [mcpservers.org](https://mcpservers.org/servers/goodbyeplanet/semcode)
+
 ## How it works
 
 1. Fetches source files from configured GitHub repositories
